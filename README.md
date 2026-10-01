@@ -1,9 +1,117 @@
-conda activate "RecBole-CDR-main 2"
+# Transformer-Based Cross-Domain Recommendation
+
+A research implementation of Transformer-based cross-domain recommendation built on [RecBole-CDR](https://github.com/RUCAIBox/RecBole-CDR).
+
+This repository explores knowledge transfer between source and target domains using Transformer-enhanced recommendation models, with reproducible dataset presets and optional privacy-aware source-data preprocessing.
+
+## Highlights
+
+- Transformer-enhanced dual-target cross-domain recommendation
+- Source and target domain training through the RecBole-CDR pipeline
+- Dataset presets for MovieLens, Amazon, Book-Crossing, and Douban
+- CPU, CUDA, single-run, multi-model, and multi-seed experiment modes
+- Optional differential privacy preprocessing for source-domain interactions
+
+## Included Models
+
+The main experimental models are:
+
+- `TransformerDTCDR`
+- `TransformerDTCDRNoSource`
+- `AttentionDTCDR`
+- `DTCDR`
+- `EMCDR`
+- `CoNet`
+- `NeuMF`
+- `CMF`
+
+Additional cross-domain recommendation baselines inherited from RecBole-CDR are also included.
+
+## Requirements
+
+- Python 3.7 or later
+- PyTorch
+- RecBole 1.0.1
+
+Install the listed Python dependency with:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Quick Start
+
+Run `TransformerDTCDR` with the MovieLens preset:
+
+```bash
 python -u run_recbole_cdr.py \
   --model TransformerDTCDR \
-  --dataset_preset movielens
+  --dataset_preset movielens \
+  --dataset_root /absolute/path/to/dataset_example
+```
 
-- CMF
-Evaluate   : 100%|██████████████████████████████████████████████| 315/315 [00:00<00:00, 3554.29it/s]
-28 Aug 16:32    INFO  best valid : OrderedDict([('recall@10', 0.2434), ('mrr@10', 0.3643), ('ndcg@10', 0.2299), ('hit@10', 0.7158), ('precision@10', 0.1419)])
-28 Aug 16:32    INFO  test result: OrderedDict([('recall@10', 0.254), ('mrr@10', 0.4305), ('ndcg@10', 0.2656), ('hit@10', 0.7253), ('precision@10', 0.1721)])
+Available dataset presets are:
+
+```text
+movielens
+amazon
+book_crossing
+douban
+```
+
+The dataset root must be an absolute path containing the corresponding source and target dataset directories.
+
+## Common Experiment Options
+
+Force CPU execution:
+
+```bash
+python run_recbole_cdr.py \
+  --model TransformerDTCDR \
+  --dataset_preset amazon \
+  --dataset_root /absolute/path/to/dataset_example \
+  --compute_device cpu
+```
+
+Run the configured models across multiple seeds:
+
+```bash
+python run_recbole_cdr.py \
+  --multimodel \
+  --multiseed \
+  --dataset_preset book_crossing \
+  --dataset_root /absolute/path/to/dataset_example
+```
+
+Run the differential privacy parameter grid:
+
+```bash
+python run_recbole_cdr.py \
+  --model TransformerDTCDR \
+  --dp_grid \
+  --dataset_preset douban \
+  --dataset_root /absolute/path/to/dataset_example
+```
+
+Use `python run_recbole_cdr.py --help` to view all available options.
+
+## Project Structure
+
+```text
+recbole_cdr/
+├── data/                         # Dataset loading and source-DP preprocessing
+├── model/cross_domain_recommender/
+│   ├── transformerdtcdr.py       # Transformer-based CDR model
+│   └── transformerdtcdrnosource.py
+├── properties/dataset/           # Dataset presets
+├── properties/model/             # Model configurations
+└── quick_start/                   # Training and evaluation entry points
+```
+
+## Acknowledgements
+
+This project is based on [RecBole-CDR](https://github.com/RUCAIBox/RecBole-CDR) and [RecBole](https://github.com/RUCAIBox/RecBole). Please refer to the upstream projects for their original implementations and citations.
+
+## License
+
+This repository is available under the [MIT License](LICENSE).

@@ -237,6 +237,10 @@ class CDRConfig(Config):
         if 'target_domain' not in config_dict:
             config_dict['target_domain'] = dict()
         for key in list(config_dict.keys()):
+            # This controls cross-domain training preprocessing and is read
+            # from the top-level config by CrossDomainDataset.build().
+            if key == 'source_dp_enabled':
+                continue
             if key.startswith('source_') and not key.startswith('source_domain'):
                 config_dict['source_domain'][key[7:]] = copy.copy(config_dict[key])
                 config_dict.pop(key)

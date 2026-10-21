@@ -137,6 +137,9 @@ if __name__ == '__main__':
                         help='CUDA GPU index used when a GPU is selected')
     parser.add_argument('--dp_grid', action='store_true',
                         help='run the configured DP seed/epsilon grid')
+    parser.add_argument('--transformer_dp_5seeds', action='store_true',
+                        help='run TransformerDTCDR at epsilon 100, 10, 1 with '
+                             'five paired training/projection/noise seeds (2022-2026)')
     parser.add_argument('--dp_seeds', type=int, nargs='+',
                         default=as_grid_values(DP_SEEDS),
                         help='DP projection seeds used with --dp_grid')
@@ -153,6 +156,14 @@ if __name__ == '__main__':
     # Keep only genuine RecBole overrides in argv. Otherwise RecBole warns that
     # this runner's own options (such as --multiseed) are unused.
     sys.argv = [sys.argv[0]] + recbole_args
+    if args.transformer_dp_5seeds:
+        if args.multimodel or args.multiseed or args.dp_grid:
+            parser.error('--transformer_dp_5seeds is a separate run mode; '
+                         'do not combine it with --multimodel, --multiseed, or --dp_grid')
+        args.model = 'TransformerDTCDR'
+        args.dp_grid = True
+        args.dp_seeds = MODEL_SEEDS
+        args.dp_epsilons = (100.0, 10.0, 1.0)
     if args.multiseed and args.dp_grid:
         parser.error('--multiseed and --dp_grid are separate run modes and cannot be combined')
     preset_file, dataset_root = resolve_dataset_preset(
@@ -199,7 +210,8 @@ if __name__ == '__main__':
     else:
         for model in models:
             for dp_seed in args.dp_seeds:
-                for dp_noise_seed in args.dp_noise_seeds:
+                noise_seeds = (dp_seed,) if args.transformer_dp_5seeds else args.dp_noise_seeds
+                for dp_noise_seed in noise_seeds:
                     for dp_epsilon in args.dp_epsilons:
                         epsilon_name = format_number_for_filename(dp_epsilon)
                         run_time = datetime.now().strftime('%Y%m%d-%H%M%S-%f')
@@ -212,6 +224,8 @@ if __name__ == '__main__':
                             run_time,
                         )
                         run_config = copy.deepcopy(config)
+                        if args.transformer_dp_5seeds:
+                            run_config['seed'] = dp_seed
                         run_config.update({
                             'source_dp_enabled': True,
                             'dp_seed': dp_seed,

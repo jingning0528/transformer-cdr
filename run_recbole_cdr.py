@@ -5,6 +5,8 @@
 import argparse
 import copy
 import sys
+import traceback
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime
 from pathlib import Path
 
@@ -104,6 +106,19 @@ def as_grid_values(value):
     return (value,)
 
 
+def run_with_file_output(output_path, **kwargs):
+    """Capture warnings, prints and failures alongside the detailed run log."""
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open('w') as output:
+        with redirect_stdout(output), redirect_stderr(output):
+            try:
+                return run_recbole_cdr(**kwargs)
+            except Exception:
+                traceback.print_exc()
+    raise SystemExit('Run failed. Details saved to {}'.format(output_path))
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', '-m', type=str, default='AttentionDTCDR',
@@ -164,6 +179,7 @@ if __name__ == '__main__':
         args.dp_grid = True
         args.dp_seeds = MODEL_SEEDS
         args.dp_epsilons = (100.0, 10.0, 1.0)
+        args.final_only = True
     if args.multiseed and args.dp_grid:
         parser.error('--multiseed and --dp_grid are separate run modes and cannot be combined')
     preset_file, dataset_root = resolve_dataset_preset(
@@ -235,12 +251,20 @@ if __name__ == '__main__':
                                 args.dp_log_dir / 'topk' / args.dataset_preset / model
                             ),
                         })
-                        result = run_recbole_cdr(
+                        run = run_recbole_cdr
+                        output_options = {}
+                        if args.transformer_dp_5seeds:
+                            run = run_with_file_output
+                            output_options['output_path'] = (
+                                args.dp_log_dir / (log_name + '.console.txt')
+                            )
+                        result = run(
                             model=model,
                             config_file_list=config_file_list,
                             config_dict=run_config,
                             log_file_path=args.dp_log_dir / log_name,
                             console_output=not args.final_only,
+                            **output_options,
                         )
                         if args.final_only:
                             print('{}-{}-projection_{}-noise_{}-epsilon_{} final result: {}'.format(

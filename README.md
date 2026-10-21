@@ -8,7 +8,9 @@ Choose `--dataset movielens`, `amazon`, `book_crossing`, or `douban`.
 This runs 15 experiments using seeds 2022–2026, pairing the training,
 projection, and Gaussian noise seed in each run. Logs are saved in
 `log/dp_grid`, with the dataset, projection seed, noise seed, and epsilon
-in each filename. Add `--final_only` for final results only, or
+in each filename. This preset prints final results only; detailed configuration
+and training output go to `.log` files, and prints, warnings, and failure
+tracebacks go to matching `.log.console.txt` files. Use
 `--dataset_root /absolute/path/to/dataset_example` to select a data location.
 The preset fixes the five seeds and three epsilon values.
 

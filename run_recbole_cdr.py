@@ -247,7 +247,7 @@ if __name__ == '__main__':
                             'dp_seed': dp_seed,
                             'dp_noise_seed': dp_noise_seed,
                             'dp_epsilon': dp_epsilon,
-                            'dp_topk_output_dir': str(
+                            'dp_topk_output_dir': None if args.transformer_dp_5seeds else str(
                                 args.dp_log_dir / 'topk' / args.dataset_preset / model
                             ),
                         })

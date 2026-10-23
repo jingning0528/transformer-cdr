@@ -1,3 +1,18 @@
+Choose Transformer DP seeds and epsilon values at run time:
+
+```bash
+python -u run_recbole_cdr.py --transformer_dp --dataset movielens \
+  --seed 2025, 2026 --epsilon 10, 1
+```
+
+This runs four experiments (each seed × each epsilon), pairing training,
+projection, and noise seeds. Space-separated values also work:
+`--seed 2025 2026 --epsilon 10 1`. Use `--seed`, without a colon.
+The existing `--transformer_dp_5seeds` flag remains an alias and accepts these
+options too. Without overrides, defaults are seeds 2022–2026 and epsilon
+100, 10, 1. Detailed output stays in `log/dp_grid`; per-user Top-K export
+is disabled.
+
 Run TransformerDTCDR with DP epsilon values **100, 10, 1** and **five seeds**:
 
 ```bash
@@ -12,7 +27,7 @@ in each filename. This preset prints final results only; detailed configuration
 and training output go to `.log` files, and prints, warnings, and failure
 tracebacks go to matching `.log.console.txt` files. Use
 `--dataset_root /absolute/path/to/dataset_example` to select a data location.
-The preset fixes the five seeds and three epsilon values.
+Override these defaults with `--seed` and `--epsilon`.
 
 conda activate "RecBole-CDR-main 2"
 python -u run_recbole_cdr.py \

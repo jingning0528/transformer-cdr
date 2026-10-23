@@ -106,6 +106,24 @@ def as_grid_values(value):
     return (value,)
 
 
+class NumericListAction(argparse.Action):
+    """Accept numeric lists separated by spaces, commas, or both."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        number_type = int if self.dest == 'paired_seeds' else float
+        try:
+            numbers = [number_type(part) for value in values
+                       for part in value.split(',') if part.strip()]
+        except ValueError:
+            parser.error('{} requires numeric values'.format(option_string))
+        if not numbers:
+            parser.error('{} requires at least one value'.format(option_string))
+        if self.dest == 'paired_epsilons' and any(
+                not (0 < value < float('inf')) for value in numbers):
+            parser.error('--epsilon values must be finite and positive')
+        setattr(namespace, self.dest, list(dict.fromkeys(numbers)))
+
+
 def run_with_file_output(output_path, **kwargs):
     """Capture warnings, prints and failures alongside the detailed run log."""
     output_path = Path(output_path)
@@ -152,9 +170,16 @@ if __name__ == '__main__':
                         help='CUDA GPU index used when a GPU is selected')
     parser.add_argument('--dp_grid', action='store_true',
                         help='run the configured DP seed/epsilon grid')
-    parser.add_argument('--transformer_dp_5seeds', action='store_true',
-                        help='run TransformerDTCDR at epsilon 100, 10, 1 with '
-                             'five paired training/projection/noise seeds (2022-2026)')
+    parser.add_argument('--transformer_dp', '--transformer_dp_5seeds',
+                        dest='transformer_dp_5seeds', action='store_true',
+                        help='run TransformerDTCDR with paired seeds; defaults '
+                             'to seeds 2022-2026 and epsilon 100, 10, 1')
+    parser.add_argument('--seed', '--seeds', dest='paired_seeds', nargs='+',
+                        action=NumericListAction,
+                        help='paired training/projection/noise seeds for --transformer_dp')
+    parser.add_argument('--epsilon', '--epsilons', dest='paired_epsilons', nargs='+',
+                        action=NumericListAction,
+                        help='epsilon values for --transformer_dp (spaces or commas)')
     parser.add_argument('--dp_seeds', type=int, nargs='+',
                         default=as_grid_values(DP_SEEDS),
                         help='DP projection seeds used with --dp_grid')
@@ -171,14 +196,16 @@ if __name__ == '__main__':
     # Keep only genuine RecBole overrides in argv. Otherwise RecBole warns that
     # this runner's own options (such as --multiseed) are unused.
     sys.argv = [sys.argv[0]] + recbole_args
+    if (args.paired_seeds is not None or args.paired_epsilons is not None) and not args.transformer_dp_5seeds:
+        parser.error('--seed and --epsilon require --transformer_dp (or --transformer_dp_5seeds)')
     if args.transformer_dp_5seeds:
         if args.multimodel or args.multiseed or args.dp_grid:
             parser.error('--transformer_dp_5seeds is a separate run mode; '
                          'do not combine it with --multimodel, --multiseed, or --dp_grid')
         args.model = 'TransformerDTCDR'
         args.dp_grid = True
-        args.dp_seeds = MODEL_SEEDS
-        args.dp_epsilons = (100.0, 10.0, 1.0)
+        args.dp_seeds = args.paired_seeds if args.paired_seeds is not None else MODEL_SEEDS
+        args.dp_epsilons = args.paired_epsilons if args.paired_epsilons is not None else (100.0, 10.0, 1.0)
         args.final_only = True
     if args.multiseed and args.dp_grid:
         parser.error('--multiseed and --dp_grid are separate run modes and cannot be combined')
